@@ -1,0 +1,12 @@
+# Temporary folders
+bin/
+obj/
+.vs/
+
+
+CurrencyRateFetcher/Properties/
+CurrencyApi/Properties/PublishProfiles/
+CurrencyRateFetcher.slnLaunch.user
+
+CurrencyRateFetcher/CurrencyRateFetcher.csproj.user
+CurrencyApi/CurrencyApi.csproj.user

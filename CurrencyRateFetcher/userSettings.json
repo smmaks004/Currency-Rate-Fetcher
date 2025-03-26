@@ -1,0 +1,7 @@
+{
+  "UserPreferences": {
+    "DesiredResponseTime": "16:00",
+    "Sender": "your_email@example.com", // Your mail
+    "Recipient": "recipient_email@example.com" // Your or someone else mail
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "SystemPreferences": {
+    "Database": {
+      "Name": "your_database_name",
+      "Address": "your_ip_adress",
+      "Port": 3306,
+      "User": "your_username",
+      "Password": "your_db_password"
+    },
+    "Smtp": {
+      "Host": "your_smtp",
+      "Port": 587,
+      "Password": "your_application_password"
+    }
+  }
+}

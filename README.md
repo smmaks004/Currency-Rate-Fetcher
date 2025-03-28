@@ -159,7 +159,7 @@ Save the file after making the changes.
 
 
 #### User Configuration
-To customize the user preferences, modify the `UserPreferences` section in the `systemSettings.json` file as follows:
+To customize the user preferences, modify the `UserPreferences` section in the `userSettings.json` file as follows:
 ```json
 {
   "UserPreferences": {

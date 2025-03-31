@@ -123,14 +123,17 @@ class Program
         // Send a GET request
         HttpResponseMessage response = await client.GetAsync(apiUrl);
 
-        try { response.EnsureSuccessStatusCode(); }
+        
+        try { response.EnsureSuccessStatusCode(); } // Check the response status
         catch (Exception)
         {
-            Log.Logger.Information($"There are no entries for {SelectedDay}");
+            Log.Logger.Information($"An error occurred while receiving data from the ECB API. Status code: {response.StatusCode}");
+            SendEmail(emailSender, emailRecipient, smtpHost, smtpPort, smtpPassword);
             return;
         }
+
         string responseBody = await response.Content.ReadAsStringAsync();
-        if (string.IsNullOrWhiteSpace(responseBody)) // If the response is empty
+        if (string.IsNullOrWhiteSpace(responseBody)) // Check if the response is empty
         {
             Log.Logger.Information($"There are no entries for {SelectedDay}");
             return;

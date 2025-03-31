@@ -130,6 +130,11 @@ class Program
             return;
         }
         string responseBody = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(responseBody)) // If the response is empty
+        {
+            Log.Logger.Information($"There are no entries for {SelectedDay}");
+            return;
+        }
 
         // XML parsing
         XDocument xmlDoc = XDocument.Parse(responseBody);

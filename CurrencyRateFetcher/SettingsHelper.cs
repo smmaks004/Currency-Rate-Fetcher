@@ -10,7 +10,7 @@ using static CurrencyRateFetcher.SettingsHelper;
 
 namespace CurrencyRateFetcher
 {
-    internal class SettingsHelper
+    public static class SettingsHelper
     {
         public class UserConfig
         {

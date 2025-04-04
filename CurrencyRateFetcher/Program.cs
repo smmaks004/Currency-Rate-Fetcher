@@ -9,6 +9,8 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using CurrencyRateFetcher;
 using static CurrencyRateFetcher.SettingsHelper;
+using CurrencyRateFetcher.Models;
+using System.Globalization;
 
 public static class LoggerExtensions // Extension method for Serilog
 {
@@ -26,8 +28,7 @@ public static class LoggerExtensions // Extension method for Serilog
 
 class Program
 {
-    private const string SdmxSchemaUrl = "http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/generic";
-
+    private const string SdmxSchemaUrl = "http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/generic"; // string URL for the XML schema
     static async Task Main(string[] args)
     {
         // Logging configuration
@@ -58,7 +59,7 @@ class Program
 
         /**************************************************************/
         // ECB API processing
-
+        
         // API URL
         string apiUrl = $"https://data-api.ecb.europa.eu/service/data/EXR/D..EUR.SP00.A?startPeriod={SelectedDay}&endPeriod={SelectedDay}&format=xml";
 
@@ -88,90 +89,81 @@ class Program
         XDocument xmlDoc = XDocument.Parse(responseBody);
 
         /****************************************************************/
-        // Database connection
 
-        string connectionString = 
-            $"Server={databaseConfig.dbAddress};" +
-            $"Database={databaseConfig.dbName};" +
-            $"Port={databaseConfig.dbPort};" +
-            $"User={databaseConfig.dbUser};" +
-            $"Password={databaseConfig.dbPassword};";   
-        
-        using MySqlConnection conn = new MySqlConnection(connectionString);
-        try 
-        { 
-            conn.Open();
-            Log.Information("Connection to DB was established");
-        }
-        catch (Exception ex)
-        {
-            Log.Logger.Here().Error(ex, "Connection to DB was not established");
-            EmailHelper.SendEmail(userConfig, smtpConfig);
-            return;
-        }
-
-        /****************************************************************/
+        XNamespace sdmxNamespace = SdmxSchemaUrl;
 
         try
         {
-            foreach (var series in xmlDoc.Descendants($"{SdmxSchemaUrl}Series"))
+            using (var context = new MyDbContext(databaseConfig))
             {
-                Log.Information("START - Parsing series");
-
-                // Extracting Currency from 'SeriesKey'
-                var currencyElement = series.Element($"{SdmxSchemaUrl}SeriesKey")
-                                            ?.Elements($"{SdmxSchemaUrl}Value")
-                                            ?.FirstOrDefault(e => e.Attribute("id")?.Value == "CURRENCY");
-
-                string currency = currencyElement?.Attribute("value")?.Value; // Currency code
-
-                // Extracting data
-                foreach (var obs in series.Descendants($"{SdmxSchemaUrl}Obs")) 
+                foreach (var series in xmlDoc.Descendants(sdmxNamespace + "Series"))
                 {
-                    Log.Information("Parsing obs"); 
+                    Log.Information("START - Parsing series");
 
-                    string date = obs.Element($"{SdmxSchemaUrl}ObsDimension")?.Attribute("value")?.Value;
-                    string value = obs.Element($"{SdmxSchemaUrl}ObsValue")?.Attribute("value")?.Value;
+                    // Extracting Currency from 'SeriesKey'
+                    var currencyElement = series.Element(sdmxNamespace + "SeriesKey")
+                                                ?.Elements(sdmxNamespace + "Value")
+                                                ?.FirstOrDefault(e => e.Attribute("id")?.Value == "CURRENCY");
 
-                    Log.Information($"Checking existence in DB: Date: {date}, Currency: {currency}");
-
-                    // SQL query to verify the existence of a record
-                    string checkQuery = "SELECT COUNT(*) FROM CurrencyRates WHERE date = @date AND currency_code = @currency;";
-
-                    // Check if the record already exists
-                    using (MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn))
+                    string? currencyCode = currencyElement?.Attribute("value")?.Value; // Currency code
+                    
+                    // Find or create currency in the database
+                    var currency = context.Currencies.FirstOrDefault(c => c.CurrencyCode == currencyCode);
+                    if (currency == null)
                     {
-                        checkCmd.Parameters.AddWithValue("@date", date);
-                        checkCmd.Parameters.AddWithValue("@currency", currency);
+                        Log.Information($"Currency {currencyCode} not found in DB. Creating...");
+                        currency = new Currency { CurrencyCode = currencyCode }; // Create a new currency object
+                        context.Currencies.Add(currency); // Add to the database context
+                        context.SaveChanges(); // Save to the database
+                        Log.Information($"Currency {currencyCode} added with ID {currency.Id}");
+                    }
 
-                        int count = Convert.ToInt32(checkCmd.ExecuteScalar());
+                    // Extracting data
+                    foreach (var obs in series.Descendants(sdmxNamespace + "Obs"))
+                    {
+                        Log.Information("Parsing obs");
 
-                        if (count > 0) // Record already exists
+                        string? dateString = obs.Element(sdmxNamespace + "ObsDimension")?.Attribute("value")?.Value;
+                        string? rateString = obs.Element(sdmxNamespace + "ObsValue")?.Attribute("value")?.Value;
+
+                        DateOnly date = DateOnly.Parse(dateString); // Parse the date string
+                        decimal exchangeRate = decimal.Parse(rateString, CultureInfo.InvariantCulture); // Parse the rate string
+
+                        Log.Information($"Checking existence for Date: {date} and Currency: {currencyCode}");
+
+
+                        // Check if a record already exists for the given date and currency
+                        bool exists = context.CurrencyRates.Any(cr => cr.Date == date && cr.CurrencyId == currency.Id);
+                        if (exists)
                         {
-                            Log.Information($"Record already exists for Date: {date}, Currency: {currency}. Skipping insert.");
+                            Log.Information($"Record already exists for Date: {date} and Currency: {currency}. Skipping.");
                             continue;
                         }
+                        else
+                        {
+                            Log.Information($"Adding CurrencyRate for Date: {date}, Currency: {currencyCode}, Rate: {exchangeRate}");
+
+                            // Create a new CurrencyRate object
+                            var currencyRate = new CurrencyRates
+                            {
+                                Date = date,
+                                CurrencyId = currency.Id,
+                                ExchangeRate = exchangeRate
+                            };
+
+                            context.CurrencyRates.Add(currencyRate); // Add to the database context
+                            context.SaveChanges(); // Save to the database
+
+                            Log.Information($"CurrencyRate for {currencyCode} on {date} was saved.");
+                        }
+
                     }
 
-                    Log.Information($"Trying to save in DB: Date: {date}, Currency: {currency}, Value in EUR: {value}");
-
-                    // SQL query to insert a new record
-                    string insertQuery = "INSERT INTO CurrencyRates (date, currency_code, exchange_rate) " +
-                                         "VALUES (@date, @currency, @rate);";
-
-                    using (MySqlCommand insertCmd = new MySqlCommand(insertQuery, conn)) // Inserting a new record
-                    {
-                        insertCmd.Parameters.AddWithValue("@date", date);
-                        insertCmd.Parameters.AddWithValue("@currency", currency);
-                        insertCmd.Parameters.AddWithValue("@rate", value);
-                        insertCmd.ExecuteNonQuery();
-
-                        Log.Information($"Information about currency - {currency} was saved");
-                    }
+                    Log.Information("END - Parsing series");
                 }
-                Log.Information("END - Parsing series");
+
+                Log.Information("The program has been successfully completed");
             }
-            Log.Information("The program has been successfully completed");
         }
         catch (Exception ex)
         {
@@ -180,7 +172,7 @@ class Program
             EmailHelper.SendEmail(userConfig, smtpConfig);
         }
 
-        Log.CloseAndFlush();    // Closedown
+        Log.CloseAndFlush(); // Closedown
     }
 
 }

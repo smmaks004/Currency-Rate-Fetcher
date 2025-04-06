@@ -47,12 +47,14 @@ CREATE TABLE CurrencyRates (
 ## Required NuGet Packages for Visual Studio 2022
 
 ```
-MySqlConnector
-SeriLog
-Serilog.Sinks.File
+Microsoft.EntityFramework
+Microsoft.EntityFramework.Design
 Microsoft.Extensions.Configuration
 Microsoft.Extensions.Configuration.Json
-Microsoft.AspNetCore.OpenAp
+MySql.EntityFrameworkCore
+SeriLog
+Serilog.Sinks.File
+Microsoft.AspNetCore.OpenApi
 ```
 
 ## Installation and Setup
@@ -114,14 +116,23 @@ USE CurrencyDB;
 8. Create the table:
 
 ```sql
+CREATE TABLE Currencies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    currency_code CHAR(3) NOT NULL UNIQUE,
+    INDEX idx_currency_code (currency_code) -- Индекс для поиска по коду валюты
+);
+
 CREATE TABLE CurrencyRates (
     id INT AUTO_INCREMENT PRIMARY KEY,
     date DATE NOT NULL,
-    currency_code VARCHAR(3) NOT NULL,
+    currency_id INT NOT NULL,
     exchange_rate DECIMAL(15,6) NOT NULL,
-    UNIQUE KEY unique_date_currency (date, currency_code),
-    INDEX idx_date (date),
-    INDEX idx_currency_code (currency_code)
+    UNIQUE KEY unique_date_currency (date, currency_id),
+    INDEX idx_date (date), -- Индекс для поиска по дате
+    INDEX idx_currency_id (currency_id), -- Индекс для ускорения JOIN-ов по currency_id
+    CONSTRAINT fk_currency_id FOREIGN KEY (currency_id) 
+        REFERENCES Currencies(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 ```
 

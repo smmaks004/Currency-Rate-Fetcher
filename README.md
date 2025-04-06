@@ -119,7 +119,7 @@ USE CurrencyDB;
 CREATE TABLE Currencies (
     id INT AUTO_INCREMENT PRIMARY KEY,
     currency_code CHAR(3) NOT NULL UNIQUE,
-    INDEX idx_currency_code (currency_code) -- Индекс для поиска по коду валюты
+    INDEX idx_currency_code (currency_code)
 );
 
 CREATE TABLE CurrencyRates (
@@ -128,8 +128,8 @@ CREATE TABLE CurrencyRates (
     currency_id INT NOT NULL,
     exchange_rate DECIMAL(15,6) NOT NULL,
     UNIQUE KEY unique_date_currency (date, currency_id),
-    INDEX idx_date (date), -- Индекс для поиска по дате
-    INDEX idx_currency_id (currency_id), -- Индекс для ускорения JOIN-ов по currency_id
+    INDEX idx_date (date),
+    INDEX idx_currency_id (currency_id),
     CONSTRAINT fk_currency_id FOREIGN KEY (currency_id) 
         REFERENCES Currencies(id)
         ON DELETE CASCADE ON UPDATE CASCADE

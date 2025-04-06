@@ -1,51 +1,47 @@
-using MySqlConnector;
+using CurrencyRateFetcher;
+using Microsoft.EntityFrameworkCore;
+using CurrencyRateFetcher.Models;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var(userConfig, databaseConfig, smtpConfig) = SettingsHelper.SettingsLoading();
 
-var systemSettings = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("systemSettings.json")
-            .Build();
+string connectionString = $"" +
+    $"Server={databaseConfig.dbAddress};" +
+    $"Database={databaseConfig.dbName};" +
+    $"Port={databaseConfig.dbPort};" +
+    $"User={databaseConfig.dbUser};" +
+    $"Password={databaseConfig.dbPassword};";
 
-var databaseConfig = systemSettings.GetSection("SystemPreferences:Database");
 
-string connectionString = $"Server={databaseConfig["Address"]};Database={databaseConfig["Name"]};Port={databaseConfig["Port"]};User={databaseConfig["User"]};Password={databaseConfig["Password"]};";
-using var connection = new MySqlConnection(connectionString);
+builder.Services.AddSingleton(databaseConfig);
+builder.Services.AddDbContext<MyDbContext>(options =>
+    options.UseMySQL(connectionString));
+
 
 var app = builder.Build();
 
-
-app.MapGet("/api/currencyRates", async () =>
+app.MapGet("/api/currencyRates", async (MyDbContext dbContext) =>
 {
-    var results = new List<object>();
-
     try
     {
-        using var connection = new MySqlConnection(connectionString);
-        await connection.OpenAsync();
-
-        string query = "SELECT date, currency_code, exchange_rate FROM CurrencyRates;";
-        using var command = new MySqlCommand(query, connection);
-
-        using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            results.Add(new
+        var results = await dbContext.CurrencyRates
+            .Include(cr => cr.Currency)
+            .Select(cr => new
             {
-                Date = reader.GetDateTime("date").ToString("yyyy-MM-dd"), // Format the date as a string
-                Currency = reader.GetString("currency_code"),
-                Rate = reader.GetDecimal("exchange_rate")
-            });
+                Date = cr.Date.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd"), 
+                Currency = cr.Currency.CurrencyCode, 
+                Rate = cr.ExchangeRate
+            })
+            .ToListAsync();
 
-        }
+        return Results.Json(results);
     }
     catch (Exception ex)
     {
         return Results.Problem($"Error accessing database: {ex.Message}");
     }
-
-    return Results.Json(results); // Return the result in JSON format
 });
 
 app.Run();

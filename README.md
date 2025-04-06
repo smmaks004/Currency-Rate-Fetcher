@@ -102,9 +102,11 @@ sudo systemctl restart mariadb
 
 ```sql
 CREATE USER 'admin'@'%' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON *.* TO 'admin'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE, INDEX ON CurrencyDB.* TO 'admin'@'%';
 FLUSH PRIVILEGES;
 ```
+> [!NOTE]
+> If you want to create a user without a remote duo, then write `localhost` instead of the `%` sign
 
 7. Create the database:
 

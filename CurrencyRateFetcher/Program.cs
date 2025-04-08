@@ -1,14 +1,8 @@
 ﻿using System;
 using System.Xml.Linq;
-using System.Net;
-
-using MySqlConnector; 
 using Serilog;
-using System.Net.Mail;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Configuration;
 using CurrencyRateFetcher;
-using static CurrencyRateFetcher.SettingsHelper;
 using CurrencyRateFetcher.Models;
 using System.Globalization;
 

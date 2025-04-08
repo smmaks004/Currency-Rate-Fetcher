@@ -323,10 +323,44 @@ sudo apt-get install -y aspnetcore-runtime-9.0
 > [!IMPORTANT]
 > If your virtual machine **is not Ubuntu 24.04**, go to the official [Microsoft documentation](https://dotnet.microsoft.com/en-us/download/dotnet/9.0/runtime?cid=getdotnetcore&runtime=aspnetcore&os=linux&arch=x64) and check which command is needed specifically for your system.
 
-After that, you can navigate to the project folder and run the project using the command dotnet `CurrencyApi.dll`
+After that, you can navigate to the project folder and run the project using the command `dotnet CurrencyApi.dll`. By default, the API runs on port **5004 for HTTP** and **5005 for HTTPS**. If these ports are already in use, you can run the program with a different port using the command:
+```
+dotnet CurrencyApi.dll --urls "http://*:your_port"
+```
+Make sure to replace `your_port` with the desired available port.
 
-You can view the content of the API by going to any browser and entering the link that will be displayed in the console with the postscript `/api/currencyRates`, for example, like this:
+
+### Interaction with API
+You can view the content of the API by going to any browser and entering the link that will be displayed in the console with the postscript `/api/currencyRates`, for example, like this:  
 ```
 https://localhost:5005/api/currencyRates
 ```
 
+If you want to filter the database and not retrieve the entire dataset, you can add a `?` and specify allowed parameters. To combine multiple filters, use the `&` symbol between them.
+
+- **Filter by currency code**  
+  To retrieve data for specific currency codes, add `currencyCode` with one or more codes separated by commas.  
+  Example:  
+  ```
+  https://localhost:5005/api/currencyRates?currencyCode=USD,EUR
+  ```
+
+- **Filter by period**  
+  To retrieve records within a specific period, use the parameters `startPeriod` and/or `endPeriod`.  
+  You can specify:
+  - `startPeriod` : The beginning of the date range for filtering.
+  - `endPeriod` : The end of the date range for filtering.
+
+  Example:  
+  ```
+  https://localhost:5005/api/currencyRates?startPeriod=2025-01-01&endPeriod=2025-01-31
+  ```
+
+- **Combine filters**  
+  You can combine multiple parameters, such as filtering by both currency code and date.  
+  Example:  
+  ```
+  https://localhost:5005/api/currencyRates?currencyCode=USD&startPeriod=2025-01-01&endPeriod=2025-01-31
+  ```
+
+This way, you can precisely control what data you'd like to retrieve based on the supported filters.

@@ -336,8 +336,8 @@ dotnet CurrencyApi.dll --urls "http://*:your_port"
 Make sure to replace `your_port` with the desired available port.
 
 
-### Interaction with API
-You can view the content of the API by going to any browser and entering the link that will be displayed in the console with the postscript `/api/currencyRates`, for example, like this:  
+## Interaction with API
+You can view the content of the API by going to a browser and entering the link that will be displayed in the console with the postscript `/api/currencyRates`, for example, like this:  
 ```
 https://localhost:5005/api/currencyRates
 ```
@@ -369,4 +369,11 @@ If you want to filter the database and not retrieve the entire dataset, you can 
   https://localhost:5005/api/currencyRates?currencyCode=USD&startPeriod=2025-01-01&endPeriod=2025-01-31
   ```
 
-This way, you can precisely control what data you'd like to retrieve based on the supported filters.
+This way you can precisely control what data you'd like to retrieve, based on the supported filters.
+
+---
+
+In addition, there is an endpoint `/api/currency` that does not require any filters. It simply returns a list of all available currency codes. To access it, just enter the following URL in your browser:
+```
+https://localhost:5005/api/currency
+```

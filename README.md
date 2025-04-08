@@ -33,14 +33,22 @@ The project was developed in **Visual Studio 2022**, utilizing the built-in **Pu
 ## Database Schema
 
 ```sql
+CREATE TABLE Currencies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    currency_code CHAR(3) NOT NULL UNIQUE,
+    INDEX idx_currency_code (currency_code)
+);
 CREATE TABLE CurrencyRates (
     id INT AUTO_INCREMENT PRIMARY KEY,
     date DATE NOT NULL,
-    currency_code VARCHAR(3) NOT NULL,
+    currency_id INT NOT NULL,
     exchange_rate DECIMAL(15,6) NOT NULL,
-    UNIQUE KEY unique_date_currency (date, currency_code),
+    UNIQUE KEY unique_date_currency (date, currency_id),
     INDEX idx_date (date),
-    INDEX idx_currency_code (currency_code)
+    INDEX idx_currency_id (currency_id),
+    CONSTRAINT fk_currency_id FOREIGN KEY (currency_id) 
+        REFERENCES Currencies(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 ```
 
@@ -49,7 +57,6 @@ CREATE TABLE CurrencyRates (
 ```
 Microsoft.EntityFramework
 Microsoft.EntityFramework.Design
-Microsoft.Extensions.Configuration
 Microsoft.Extensions.Configuration.Json
 MySql.EntityFrameworkCore
 SeriLog
@@ -123,7 +130,6 @@ CREATE TABLE Currencies (
     currency_code CHAR(3) NOT NULL UNIQUE,
     INDEX idx_currency_code (currency_code)
 );
-
 CREATE TABLE CurrencyRates (
     id INT AUTO_INCREMENT PRIMARY KEY,
     date DATE NOT NULL,

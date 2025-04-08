@@ -373,7 +373,7 @@ This way you can precisely control what data you'd like to retrieve, based on th
 
 ---
 
-In addition, there is an endpoint `/api/currency` that does not require any filters. It simply returns a list of all available currency codes. To access it, just enter the following URL in your browser:
+In addition, there is an endpoint `/api/currency` that does not require any filters. It simply returns a list of all available currency codes. To access it, just enter the following URL in your browser (replace 5005 with the desired available port):
 ```
 https://localhost:5005/api/currency
 ```
